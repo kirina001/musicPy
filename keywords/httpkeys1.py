@@ -84,6 +84,40 @@ class HTTP:
 
             # 定义get实例方法，用来发送get请求
 
+    # post请求通过json发送数据
+    def postjson(self, path, data=''):
+        try:
+            if not path.startswith('http'):
+                path = self.url + '/' + path
+                print('请求url:' + str(path))
+
+            # 如果需要传参，就调用post，传递data
+            if data == '':
+                result = self.session.post(path)
+            else:
+                print('请求data数据' + str(data))
+                # 替换参数
+                data = self.__getparams(data)
+                # 转为字典
+                # data = self.__todict(data)
+                # print('转换后的数据' + str(data))
+                # 发送请求
+                result = self.session.post(path, data=data)
+                print('返回 result' + result.text)
+
+            res = result.text
+            # print('res数据' + str(res))
+            try:
+                res = res[res.find('{'):res.rfind('}') + 1]
+            except Exception as e:
+                logger.exception(e)
+
+            self.jsonres = json.loads(res)
+            return True
+        except Exception as e:
+            logger.exception(e)
+            return False
+
     def get(self, path, data=''):
         print('get请求开始')
         try:
@@ -113,7 +147,7 @@ class HTTP:
                 logger.exception(e)
 
             self.jsonres = json.loads(res)
-            print('get请求返回数据'+str(self.jsonres))
+            print('get请求返回数据' + str(self.jsonres))
             # self.writer.write(self.writer.row, self.writer.clo, 'PASS')
             # self.writer.write(self.writer.row, self.writer.clo + 1, str(self.jsonres))
             return True
@@ -135,27 +169,19 @@ class HTTP:
         value = self.__getparams(value)
 
         if res == str(value):
-            # self.writer.write(self.writer.row, self.writer.clo, 'PASS')
-            # self.writer.write(self.writer.row, self.writer.clo + 1, str(res))
             return True
         else:
-            # self.writer.write(self.writer.row, self.writer.clo, 'FAIL')
-            # self.writer.write(self.writer.row, self.writer.clo + 1, str(res))
             return False
 
     # 给头添加一个键值对的关键字
     def addheader(self, key, value):
         value = self.__getparams(value)
         self.session.headers[key] = value
-        # self.writer.write(self.writer.row, self.writer.clo, 'PASS')
-        # self.writer.write(self.writer.row, self.writer.clo + 1, str(value))
         return True
 
     # 从头里面删除一个键值对
     def removeheader(self, key):
         self.session.headers.pop(key)
-        # self.writer.write(self.writer.row, self.writer.clo, 'PASS')
-        # self.writer.write(self.writer.row, self.writer.clo + 1, str(key))
         return True
 
     # 定义保存一个json值为参数的关键字
@@ -163,21 +189,19 @@ class HTTP:
         res = ''
         # self.jsonres = json.loads(res)
         try:
-            print('返回json数据'+str(self.jsonres))
+            print('返回json数据' + str(self.jsonres))
             res = self.jsonres[key]
         except Exception as e:
             logger.exception(e)
 
         self.params[p] = res
-        # self.writer.write(self.writer.row, self.writer.clo, 'PASS')
-        # self.writer.write(self.writer.row, self.writer.clo + 1, str(res))
         return True
 
     # 获取参数里面的值
     def __getparams(self, s):
         logger.info(self.params)
         for key in self.params:
-            s = s.replace('{' + key + '}', self.params[key])
+            s = s.replace('$' + key + '$', self.params[key])
 
         return s
 
